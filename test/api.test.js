@@ -11,13 +11,19 @@ let testUserSignup = { username: testUserLogin.username, password: testUserLogin
 let testAdminLogin = { username: "admin", password: "password" }
 let userToken;
 let adminToken;
-let campsiteTest = {
-    name: new Date().toString(),
+const randomRating = () => Math.floor(Math.random() * 5) + 1
+const timeString = () => new Date().toString()
+
+let campsiteTest = () => ({
+    name: timeString(),
     image: "image.jpg",
     elevation: Math.floor(Math.random() * 4000),
     description: "Hey, you can only know right now.",
     cost: Math.floor(Math.random() * 100)
-}
+})
+
+let commentTest = () => ({ rating: randomRating(), text: timeString() })
+
 
 // This seems faster than Postman to run every time, but now I need to go through and create tests for everything. Also I'm learning that Express responds to some of these with a 401 instead of a 403, and I'm not sure how to modify that. Or if I even want to.
 
@@ -95,7 +101,7 @@ describe('API tests', function () {
         describe('POST /campsites', function () {
             it('should return 401 when unauthorized POST /campsites', done => {
                 request.post('/campsites')
-                    .send(campsiteTest)
+                    .send(campsiteTest())
                     .expect(401)
                     .end(done)
             })
@@ -103,7 +109,7 @@ describe('API tests', function () {
         describe('PUT /campsites', function () {
             it('should return 401 when unauthorized PUT /campsites', done => {
                 request.put('/campsites')
-                    .send(campsiteTest)
+                    .send(campsiteTest())
                     .expect(401)
                     .end(done)
             })
@@ -130,7 +136,7 @@ describe('API tests', function () {
             it('should return 403 when user POST /campsites', done => {
                 request.post('/campsites')
                     .set('Authorization', `Bearer ${userToken}`)
-                    .send(campsiteTest)
+                    .send(campsiteTest())
                     .expect(403)
                     .end(done)
             })
@@ -139,7 +145,7 @@ describe('API tests', function () {
             it('should return 403 when user PUT /campsites', done => {
                 request.put('/campsites')
                     .set('Authorization', `Bearer ${userToken}`)
-                    .send(campsiteTest)
+                    .send(campsiteTest())
                     .expect(403)
                     .end(done)
             })
@@ -164,10 +170,10 @@ describe('API tests', function () {
             })
         });
         describe('POST /campsites', function () {
-            it(`should return 200 when user POST /campsites with ${JSON.stringify(campsiteTest)}`, done => {
+            it(`should return 200 when user POST /campsites`, done => {
                 request.post('/campsites')
                     .set('Authorization', `Bearer ${adminToken}`)
-                    .send(campsiteTest)
+                    .send(campsiteTest())
                     .expect(200)
                     .expect('Content-Type', /json/)
 
@@ -183,13 +189,13 @@ describe('API tests', function () {
             it('should return 403 when user PUT /campsites', done => {
                 request.put('/campsites')
                     .set('Authorization', `Bearer ${adminToken}`)
-                    .send(campsiteTest)
+                    .send(campsiteTest())
                     .expect(403)
                     .end(done)
             })
         })
         describe('DELETE /campsites', function () {
-            it('should return 403 when user DELETE /campsites', done => {
+            it('should return 200 when user DELETE /campsites', done => {
                 request.delete('/campsites')
                     .set('Authorization', `Bearer ${adminToken}`)
 

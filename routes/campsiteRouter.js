@@ -23,7 +23,9 @@ campsiteRouter.route('/')
     .post(verifyUser, verifyAdmin, (req, res, next) => {
         Campsite.create(req.body)
             .then(campsite => {
-                console.log('Campsite Created ', campsite);
+                if (process.env.NODE_ENV !== 'test') {
+                    console.log('Campsite Created ', campsite);
+                }
                 res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json');
                 res.json(campsite);
