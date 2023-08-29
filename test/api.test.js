@@ -34,13 +34,11 @@ let partnersArray = [];
 
 before(function (done) { this.timeout(3000); setTimeout(done, 2000); })
 describe('API tests', function () {
-    describe('GET /', function () {
-        it('should return 200 and text/html', done => {
-            request.get('/')
-                .expect(200)
-                .expect('Content-Type', /html/)
-                .end(done)
-        });
+    it('GET / should return 200 and text/html', done => {
+        request.get('/')
+            .expect(200)
+            .expect('Content-Type', /html/)
+            .end(done)
     });
     /*
     // Not sure how to execute this just once. Need to have a delete method for users, and clean it up after, but ... It works.
@@ -59,36 +57,32 @@ describe('API tests', function () {
             });
         })
         */
-    describe('POST /users/login', function () {
-        it(`should be able to login as user with ${JSON.stringify(testUserLogin)}`, done => {
-            request.post('/users/login')
-                .send(testUserLogin)
-                .expect(200)
-                .expect('Content-Type', /json/)
-                .end((err, res) => {
-                    if (err) return done(console.log(err));
-                    expect(res.body).to.have.property('token');
-                    userToken = res.body.token;
-                    done()
-                })
-        })
-
+    it(`POST /users/login should be able to login as user with ${JSON.stringify(testUserLogin)}`, done => {
+        request.post('/users/login')
+            .send(testUserLogin)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end((err, res) => {
+                if (err) return done(console.log(err));
+                expect(res.body).to.have.property('token');
+                userToken = res.body.token;
+                done()
+            })
     })
-    describe('POST /users/login', function () {
-        it(`should be able to login as admin with ${JSON.stringify(testAdminLogin)}`, done => {
-            request.post('/users/login')
-                .send(testAdminLogin)
-                .expect(200)
-                .expect('Content-Type', /json/)
-                .end((err, res) => {
-                    if (err) return done(console.log(err));
-                    expect(res.body).to.have.property('token');
-                    adminToken = res.body.token;
-                    done()
-                })
-        })
 
+    it(`POST /users/login should be able to login as admin with ${JSON.stringify(testAdminLogin)}`, done => {
+        request.post('/users/login')
+            .send(testAdminLogin)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end((err, res) => {
+                if (err) return done(console.log(err));
+                expect(res.body).to.have.property('token');
+                adminToken = res.body.token;
+                done()
+            })
     })
+
     describe('Campsite endpoints, not logged in', function () {
         describe('GET /campsites', function () {
             it('should return 200 in JSON for GET /campsites', done => {
