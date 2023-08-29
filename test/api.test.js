@@ -10,6 +10,7 @@ let testUserLogin2 = { username: "testuser4", password: "password" }
 let testUserSignup = { username: testUserLogin.username, password: testUserLogin.password, firstname: "test", lastname: "user" }
 let testAdminLogin = { username: "admin", password: "password" }
 let userToken;
+let userToken2;
 let adminToken;
 const randomRating = () => Math.floor(Math.random() * 5) + 1
 const timeString = () => new Date().toString()
@@ -28,143 +29,251 @@ let commentTest = () => ({ rating: randomRating(), text: timeString() })
 // This seems faster than Postman to run every time, but now I need to go through and create tests for everything. Also I'm learning that Express responds to some of these with a 401 instead of a 403, and I'm not sure how to modify that. Or if I even want to.
 
 let campsitesArray = [];
+let commentsArray = [];
 let promotionsArray = [];
 let partnersArray = [];
 
 
-before(function (done) { this.timeout(3000); setTimeout(done, 2000); })
+/* before(function (done) {
+    this.timeout(3000);
+    setTimeout(done, 2000);
+
+}) */
+const mongoose = require('mongoose');
+
+
+
+
 describe('API tests', function () {
-    it('GET / should return 200 and text/html', done => {
-        request.get('/')
-            .expect(200)
-            .expect('Content-Type', /html/)
-            .end(done)
+    before((done) => {
+        mongoose.connection.once('open', done);
     });
-    /*
-    // Not sure how to execute this just once. Need to have a delete method for users, and clean it up after, but ... It works.
-    describe('Users endpoints', function () {
-        describe('POST /users/signup', function () {
-            it(`should be able to signup with ${JSON.stringify(testUserSignup)}`, done => {
-                request.post('/users/signup')
-                    .send(testUserSignup)
+
+    describe('Initial tests', function () {
+
+        it('GET / should return 200 and text/html', done => {
+            request.get('/')
+                .expect(200)
+                .expect('Content-Type', /html/)
+                .end(done)
+        });
+
+        /*
+        // Not sure how to execute this just once. Need to have a delete method for users, and clean it up after, but ... It works.
+        describe('Users endpoints', function () {
+            describe('POST /users/signup', function () {
+                it(`should be able to signup with ${JSON.stringify(testUserSignup)}`, done => {
+                    request.post('/users/signup')
+                        .send(testUserSignup)
+                        .expect(200)
+                        .expect('Content-Type', /json/)
+                        .end((err, res) => {
+                            if (err) return done(console.log(err));
+                            done();
+                        });
+    
+                });
+            })
+            */
+        it(`POST /users/login should be able to login as user with ${JSON.stringify(testUserLogin)}`, done => {
+            request.post('/users/login')
+                .send(testUserLogin)
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .end((err, res) => {
+                    if (err) return done(console.log(err));
+                    expect(res.body).to.have.property('token');
+                    userToken = res.body.token;
+                    done()
+                })
+        })
+
+        it(`POST /users/login should be able to login as admin with ${JSON.stringify(testAdminLogin)}`, done => {
+            request.post('/users/login')
+                .send(testAdminLogin)
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .end((err, res) => {
+                    if (err) return done(console.log(err));
+                    expect(res.body).to.have.property('token');
+                    adminToken = res.body.token;
+                    done()
+                })
+        })
+        it(`POST /users/login should be able to login second user with ${JSON.stringify(testUserLogin2)}`, done => {
+            request.post('/users/login')
+                .send(testUserLogin2)
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .end((err, res) => {
+                    if (err) return done(console.log(err));
+                    expect(res.body).to.have.property('token');
+                    userToken2 = res.body.token;
+                    done();
+                })
+        })
+    })
+
+    describe('Unauthorized user', function () {
+        describe('Campsite endpoints', function () {
+            it('GET /campsites should return 200 in JSON', done => {
+                request.get('/campsites')
+                    .expect(200)
+                    .expect('Content-Type', /json/)
+                    .end(done)
+            })
+            it('POST /campsites should return 401 when unauthorized', done => {
+                request.post('/campsites')
+                    .send(campsiteTest())
+                    .expect(401)
+                    .end(done)
+            })
+            it('PUT /campsites should return 401 when unauthorized', done => {
+                request.put('/campsites')
+                    .send(campsiteTest())
+                    .expect(401)
+                    .end(done)
+            })
+            it('DELETE /campsites should return 401 when unauthorized', done => {
+                request.delete('/campsites')
+                    .expect(401)
+                    .end(done)
+            })
+        });
+        describe("Specific campsite endpoints", function () {
+
+            before(function (done) {
+                request.post(`/campsites`)
+                    .set('Authorization', `Bearer ${adminToken}`)
+                    .send(campsiteTest())
+                    .expect(200)
+                    .end((err, res) => {
+                        if (err) return done(console.log(err));
+                        expect(res.body).to.have.property('_id')
+                        campsitesArray.push(res.body._id);
+                        done();
+                    })
+            })
+            before(function (done) {
+                request.post(`/campsites/${campsitesArray[0]}/comments`)
+                    .set('Authorization', `Bearer ${userToken2}`)
+                    .send(commentTest())
+                    .expect(200)
+                    .end((err, res) => {
+                        if (err) return done(err);
+                        expect(res.body).to.have.property('_id')
+                        commentsArray.push(res.body._id);
+                        done();
+                    })
+            })
+            it(`GET /campsites/campsiteId should return 200 in JSON`, done => {
+                request.get(`/campsites/${campsitesArray[0]}`)
                     .expect(200)
                     .expect('Content-Type', /json/)
                     .end((err, res) => {
-                        if (err) return done(console.log(err));
+                        if (err) done(console.log(err))
                         done();
-                    });
+                    })
 
-            });
-        })
-        */
-    it(`POST /users/login should be able to login as user with ${JSON.stringify(testUserLogin)}`, done => {
-        request.post('/users/login')
-            .send(testUserLogin)
-            .expect(200)
-            .expect('Content-Type', /json/)
-            .end((err, res) => {
-                if (err) return done(console.log(err));
-                expect(res.body).to.have.property('token');
-                userToken = res.body.token;
-                done()
             })
-    })
-
-    it(`POST /users/login should be able to login as admin with ${JSON.stringify(testAdminLogin)}`, done => {
-        request.post('/users/login')
-            .send(testAdminLogin)
-            .expect(200)
-            .expect('Content-Type', /json/)
-            .end((err, res) => {
-                if (err) return done(console.log(err));
-                expect(res.body).to.have.property('token');
-                adminToken = res.body.token;
-                done()
+            it(`POST /campsites/campsiteId should return 401 when unauthorized`, done => {
+                request.post(`/campsites/${campsitesArray[0]}`)
+                    .send(commentTest())
+                    .expect(401)
+                    .end(done)
             })
-    })
-
-    describe('Campsite endpoints, not logged in', function () {
-        describe('GET /campsites', function () {
-            it('should return 200 in JSON for GET /campsites', done => {
-                request.get('/campsites')
-                    .expect(200)
-                    .expect('Content-Type', /json/)
+            it(`PUT /campsites/campsiteId should return 401 when unauthorized`, done => {
+                request.put(`/campsites/${campsitesArray[0]}`)
+                    .send(campsiteTest())
+                    .expect(401)
+                    .end(done)
+            })
+            it(`DELETE /campsites/campsiteId should return 401 when unauthorized`, done => {
+                request.delete(`/campsites/${campsitesArray[0]}`)
+                    .expect(401)
                     .end(done)
             })
         });
-        describe('POST /campsites', function () {
-            it('should return 401 when unauthorized POST /campsites', done => {
-                request.post('/campsites')
-                    .send(campsiteTest())
-                    .expect(401)
-                    .end(done)
-            })
-        })
-        describe('PUT /campsites', function () {
-            it('should return 401 when unauthorized PUT /campsites', done => {
-                request.put('/campsites')
-                    .send(campsiteTest())
-                    .expect(401)
-                    .end(done)
-            })
-        })
-        describe('DELETE /campsites', function () {
-            it('should return 401 when unauthorized DELETE /campsites', done => {
-                request.delete('/campsites')
-                    .expect(401)
-                    .end(done)
-            })
-        })
-    });
-    describe('Campsite endpoints, logged in as user', function () {
-        describe('GET /campsites', function () {
-            it('should return 200 in JSON for GET /campsites', done => {
+
+
+    })
+    describe('Authorized user', function () {
+
+
+        describe('Campsite endpoints, logged in as user', function () {
+            it('GET /campsites should return 200 in JSON', done => {
                 request.get('/campsites')
                     .set('Authorization', `Bearer ${userToken}`)
                     .expect(200)
                     .expect('Content-Type', /json/)
                     .end(done)
             })
-        });
-        describe('POST /campsites', function () {
-            it('should return 403 when user POST /campsites', done => {
+            it('POST /campsites should return 403 when user', done => {
                 request.post('/campsites')
                     .set('Authorization', `Bearer ${userToken}`)
                     .send(campsiteTest())
                     .expect(403)
                     .end(done)
             })
-        })
-        describe('PUT /campsites', function () {
-            it('should return 403 when user PUT /campsites', done => {
+            it('PUT /campsites should return 403 when user', done => {
                 request.put('/campsites')
                     .set('Authorization', `Bearer ${userToken}`)
                     .send(campsiteTest())
                     .expect(403)
                     .end(done)
             })
-        })
-        describe('DELETE /campsites', function () {
-            it('should return 403 when user DELETE /campsites', done => {
+            it('DELETE /campsites should return 403 when user', done => {
                 request.delete('/campsites')
                     .set('Authorization', `Bearer ${userToken}`)
                     .expect(403)
                     .end(done)
             })
+        });
+
+
+
+
+        describe("Specific campsite endpoints, logged in as user", function () {
+            it(`GET /campsites/campsiteId should return 200 in JSON`, done => {
+                request.get(`/campsites/${campsitesArray[0]}`)
+                    .set('Authorization', `Bearer ${userToken}`)
+                    .expect(200)
+                    .expect('Content-Type', /json/)
+                    .end(done)
+            })
+            it(`POST /campsites/campsiteId should return 403 when user`, done => {
+                request.post(`/campsites/${campsitesArray[0]}`)
+                    .set('Authorization', `Bearer ${userToken}`)
+                    .send(commentTest())
+                    .expect(403)
+                    .end(done)
+            })
+            it(`PUT /campsites/campsiteId should return 403 when user`, done => {
+                request.put(`/campsites/${campsitesArray[0]}`)
+                    .set('Authorization', `Bearer ${userToken}`)
+                    .send(campsiteTest())
+                    .expect(403)
+                    .end(done)
+            })
+            it(`DELETE /campsites/campsiteId should return 403 when user`, done => {
+                request.delete(`/campsites/${campsitesArray[0]}`)
+                    .set('Authorization', `Bearer ${userToken}`)
+                    .expect(403)
+                    .end(done)
+            })
+
         })
-    });
-    describe('Campsite endpoints, logged in as admin', function () {
-        describe('GET /campsites', function () {
-            it('should return 200 in JSON for GET /campsites', done => {
+    })
+    describe('Admin', function () {
+        describe('Campsite endpoints', function () {
+            it('GET /campsites should return 200 in JSON', done => {
                 request.get('/campsites')
                     .set('Authorization', `Bearer ${adminToken}`)
                     .expect(200)
                     .expect('Content-Type', /json/)
                     .end(done)
-            })
-        });
-        describe('POST /campsites', function () {
-            it(`should return 200 when user POST /campsites`, done => {
+            });
+            it(`POST /campsites should return 200 when admin`, done => {
                 request.post('/campsites')
                     .set('Authorization', `Bearer ${adminToken}`)
                     .send(campsiteTest())
@@ -178,18 +287,14 @@ describe('API tests', function () {
                         done();
                     })
             })
-        })
-        describe('PUT /campsites', function () {
-            it('should return 403 when user PUT /campsites', done => {
+            it('PUT /campsites should return 403 when admin', done => {
                 request.put('/campsites')
                     .set('Authorization', `Bearer ${adminToken}`)
                     .send(campsiteTest())
                     .expect(403)
                     .end(done)
             })
-        })
-        describe('DELETE /campsites', function () {
-            it('should return 200 when user DELETE /campsites', done => {
+            it('DELETE /campsites should return 200 when admin', done => {
                 request.delete('/campsites')
                     .set('Authorization', `Bearer ${adminToken}`)
 
@@ -197,15 +302,15 @@ describe('API tests', function () {
                     .end((err, res) => {
                         if (err) return done(console.log(err));
                         expect(res.body).to.have.property('deletedCount');
+                        campsitesArray = [];
                         done()
                     })
             })
-        })
-    });
+        });
+    })
 
-
-    describe('GET /users/logout for user', function (done) {
-        it('should redirect to /', done => {
+    describe('Final tests/cleanup', function (done) {
+        it('GET /users/logout for user should redirect to /', done => {
             request.get('/users/logout')
                 .set('Authorization', `Bearer ${userToken}`)
                 .expect(302)
