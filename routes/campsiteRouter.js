@@ -176,7 +176,7 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
 
     })
     .post(verifyUser, (req, res, next) => {
-        req.statusCode = 403;
+        res.statusCode = 403;
         res.end(`POST operation not supported on /campsites/${req.params.campsiteId}/comments/`);
     })
     .put(verifyUser, (req, res, next) => {
@@ -220,7 +220,7 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
         Campsite.findById(req.params.campsiteId)
             .then(campsite => {
                 if (campsite && campsite.comments.id(req.params.commentId)) {
-                    if (campsite.comments.id(req.params.commentId).author.equals(req.user._id)) {
+                    if (req.user.admin || campsite.comments.id(req.params.commentId).author.equals(req.user._id)) {
                         campsite.comments.id(req.params.commentId).remove();
                         campsite.save()
                             .then(campsite => {
